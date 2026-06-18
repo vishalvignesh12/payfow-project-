@@ -178,15 +178,3 @@ To rollback migrations (not implemented in the current migrate command, but can 
 #### Running Tests
 
 There are currently no tests in the repository. Consider adding unit and integration tests.
-
-#### Code Style
-
-The project follows standard Go formatting. Use `gofmt` and `go vet` before submitting changes.
-
-### License
-
-This project is licensed under the MIT License.
-
---- 
-
-*Note: This README was generated based on the source code. For any discrepancies, the source code is the ultimate source of truth.*
