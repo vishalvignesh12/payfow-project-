@@ -34,7 +34,10 @@ payflow/
 │   └── migrate/         # Database migration tool
 ├── internal/
 │   ├── config/          # Configuration loading
-│   └── db/              # Database initialization (Postgres, Redis)
+│   ├── db/              # Database initialization (Postgres, Redis)
+│   ├── models/          # Data models (transaction, audit, fraud)
+│   ├── repository/      # Data access layer for models
+│   └── statemachine/    # Transaction state machine logic
 ├── migrations/          # SQL migration files
 ├── docker/              # Dockerfiles
 ├── docker-compose.yml   # Docker Compose for local dev
@@ -106,7 +109,7 @@ go run ./cmd/migrate
 go run ./cmd/server
 ```
 
-### API Endpoints
+## API Endpoints
 
 Currently, Payflow exposes a single health check endpoint:
 
@@ -133,7 +136,7 @@ If the database is unreachable, returns `503 Service Unavailable` with:
 }
 ```
 
-### Database Schema
+## Database Schema
 
 Payflow uses the following tables (managed via migrations):
 
@@ -161,7 +164,38 @@ Logs changes to transactions for compliance and debugging.
 #### Fraud-related tables
 Tables for storing fraud rules, models, and logs (see migration files).
 
-### Migrations
+### Models
+
+The `internal/models` package contains Go structs that map to database tables:
+
+- `Transactions`: Represents a payment transaction with fields matching the `transactions` table.
+- `AuditLog`: Represents an audit entry for state changes.
+- `Fraud`: Represents a fraud detection result linked to a transaction.
+
+Each model includes struct tags for database mapping (`db`) and JSON serialization (`json`).
+
+### Repository Layer
+
+The `internal/repository` package provides data access functions for each model:
+
+- **TransactionRepo**: CRUD operations for transactions, including creating, retrieving, updating status, updating retry counts, and fetching pending retries.
+- **AuditRepo**: Writing audit logs and retrieving audit entries by transaction ID.
+- **FraudRepo**: Writing fraud flags and retrieving recent fraud records.
+
+Repositories use `sqlx` for database interactions and accept optional transaction (`*sqlx.Tx`) parameters for atomic operations.
+
+### State Machine
+
+The `internal/statemachine` package defines valid state transitions for a transaction:
+
+- Created → Pending
+- Pending → Processing
+- Processing → Success or Failed
+- Failed → Processing (retry)
+
+The `IsValid` and `ValidTransition` functions enforce these rules, preventing invalid state changes.
+
+## Migrations
 
 Database migrations are managed with [golang-migrate](https://github.com/golang-migrate/migrate). The migration files are in the `migrations/` directory.
 
@@ -173,19 +207,12 @@ go run ./cmd/migrate
 
 To rollback migrations (not implemented in the current migrate command, but can be done manually with the migrate CLI).
 
-### Development
+## Development
 
-#### Running Tests
+### Running Tests
 
 There are currently no tests in the repository. Consider adding unit and integration tests.
 
-#### Code Style
-
-The project follows standard Go formatting. Use `gofmt` and `go vet` before submitting changes.
-
-### License
-
-This project is licensed under the MIT License.
 
 --- 
 
